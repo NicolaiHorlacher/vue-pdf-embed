@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import copy from 'rollup-plugin-copy'
@@ -46,7 +47,7 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: new URL('./src/index.ts', import.meta.url).pathname,
+      entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       name: 'VuePdfEmbed',
       fileName: 'index',
     },
