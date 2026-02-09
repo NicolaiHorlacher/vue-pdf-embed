@@ -81,10 +81,13 @@ export function isDocument(doc: unknown): doc is PDFDocumentProxy {
 }
 
 // @internal
+export function releaseCanvas(canvas: HTMLCanvasElement) {
+  canvas.width = 1
+  canvas.height = 1
+  canvas.getContext('2d')?.clearRect(0, 0, 1, 1)
+}
+
+// @internal
 export function releaseChildCanvases(el?: HTMLElement | null) {
-  el?.querySelectorAll('canvas').forEach((canvas: HTMLCanvasElement) => {
-    canvas.width = 1
-    canvas.height = 1
-    canvas.getContext('2d')?.clearRect(0, 0, 1, 1)
-  })
+  el?.querySelectorAll('canvas').forEach(releaseCanvas)
 }

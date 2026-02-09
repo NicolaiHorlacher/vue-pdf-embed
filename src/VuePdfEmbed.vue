@@ -15,6 +15,7 @@ import {
   createPrintIframe,
   downloadPdf,
   emptyElement,
+  releaseCanvas,
   releaseChildCanvases,
 } from './utils'
 import { useVuePdfEmbed } from './composables'
@@ -181,6 +182,7 @@ const print = async (dpi = 300, filename = '', allPages = false) => {
     window.document.body.appendChild(container)
     iframe = await createPrintIframe(container)
 
+    const batchSize = Math.max(3, Math.floor(10 * (300 / dpi)))
     const pageNums =
       props.page && !allPages
         ? Array.isArray(props.page)
@@ -188,37 +190,46 @@ const print = async (dpi = 300, filename = '', allPages = false) => {
           : [props.page]
         : [...Array(doc.value.numPages + 1).keys()].slice(1)
 
-    await Promise.all(
-      pageNums.map(async (pageNum, i) => {
-        const page = await doc.value!.getPage(pageNum)
-        const viewport = page.getViewport({
-          scale: 1,
-          rotation: 0,
-        })
+    for (
+      let batchIndex = 0;
+      batchIndex < pageNums.length;
+      batchIndex += batchSize
+    ) {
+      await Promise.all(
+        pageNums
+          .slice(batchIndex, batchIndex + batchSize)
+          .map(async (pageNum, i) => {
+            const page = await doc.value!.getPage(pageNum)
+            const viewport = page.getViewport({
+              scale: 1,
+              rotation: 0,
+            })
 
-        if (i === 0) {
-          const sizeX = (viewport.width * printUnits) / styleUnits
-          const sizeY = (viewport.height * printUnits) / styleUnits
-          addPrintStyles(iframe, sizeX, sizeY)
-        }
+            if (batchIndex + i === 0) {
+              const sizeX = (viewport.width * printUnits) / styleUnits
+              const sizeY = (viewport.height * printUnits) / styleUnits
+              addPrintStyles(iframe, sizeX, sizeY)
+            }
 
-        const canvas = window.document.createElement('canvas')
-        canvas.width = viewport.width * printUnits
-        canvas.height = viewport.height * printUnits
-        container.appendChild(canvas)
-        const canvasClone = canvas.cloneNode() as HTMLCanvasElement
-        iframe.contentWindow!.document.body.appendChild(canvasClone)
+            const canvas = window.document.createElement('canvas')
+            canvas.width = viewport.width * printUnits
+            canvas.height = viewport.height * printUnits
+            container.appendChild(canvas)
+            const canvasClone = canvas.cloneNode() as HTMLCanvasElement
+            iframe.contentWindow!.document.body.appendChild(canvasClone)
 
-        await page.render({
-          canvasContext: canvas.getContext('2d')!,
-          intent: 'print',
-          transform: [printUnits, 0, 0, printUnits, 0, 0],
-          viewport,
-        }).promise
+            await page.render({
+              canvasContext: canvas.getContext('2d')!,
+              intent: 'print',
+              transform: [printUnits, 0, 0, printUnits, 0, 0],
+              viewport,
+            }).promise
 
-        canvasClone.getContext('2d')!.drawImage(canvas, 0, 0)
-      })
-    )
+            canvasClone.getContext('2d')!.drawImage(canvas, 0, 0)
+            releaseCanvas(canvas)
+          })
+      )
+    }
 
     if (filename) {
       title = window.document.title
@@ -232,6 +243,7 @@ const print = async (dpi = 300, filename = '', allPages = false) => {
       window.document.title = title
     }
 
+    releaseChildCanvases(iframe!.contentWindow?.document.body)
     releaseChildCanvases(container!)
     container!.parentNode?.removeChild(container!)
   }
