@@ -17,9 +17,14 @@ export function addPrintStyles(
     }
     canvas {
       width: 100%;
-      page-break-after: always;
       page-break-before: avoid;
+      break-before: avoid;
       page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    canvas:not(:last-child) {
+      page-break-after: always;
+      break-after: page;
     }
   `
   iframe.contentWindow!.document.head.appendChild(style)
