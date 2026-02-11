@@ -16,7 +16,14 @@ import type {
 } from 'pdfjs-dist'
 
 import type { PasswordRequestParams, Source } from './types'
-import { isDocument } from './utils'
+import {
+  addPrintStyles,
+  createPrintIframe,
+  downloadPdf,
+  isDocument,
+  releaseCanvas,
+  releaseChildCanvases,
+} from './utils'
 
 export function useVuePdfEmbed({
   onError,
@@ -94,7 +101,109 @@ export function useVuePdfEmbed({
     }
   })
 
+  const download = async (filename: string) => {
+    if (!doc.value) {
+      return
+    }
+
+    const data = await doc.value.getData()
+    const metadata = await doc.value.getMetadata()
+    const suggestedFilename =
+      // @ts-expect-error: contentDispositionFilename is not typed
+      filename ?? metadata.contentDispositionFilename ?? ''
+    downloadPdf(data, suggestedFilename)
+  }
+
+  const print = async (
+    dpi = 300,
+    filename = '',
+    pageNumber?: number | number[]
+  ) => {
+    if (!doc.value) {
+      return
+    }
+
+    const printUnits = dpi / 72
+    const styleUnits = 96 / 72
+    let container: HTMLDivElement
+    let iframe: HTMLIFrameElement
+    let title: string | undefined
+
+    try {
+      container = window.document.createElement('div')
+      container.style.display = 'none'
+      window.document.body.appendChild(container)
+      iframe = await createPrintIframe(container)
+
+      const batchSize = Math.max(3, Math.floor(10 * (300 / dpi)))
+      const pageNums = pageNumber
+        ? Array.isArray(pageNumber)
+          ? pageNumber
+          : [pageNumber]
+        : [...Array(doc.value.numPages + 1).keys()].slice(1)
+
+      for (
+        let batchIndex = 0;
+        batchIndex < pageNums.length;
+        batchIndex += batchSize
+      ) {
+        await Promise.all(
+          pageNums
+            .slice(batchIndex, batchIndex + batchSize)
+            .map(async (pageNum, i) => {
+              const page = await doc.value!.getPage(pageNum)
+              const viewport = page.getViewport({
+                scale: 1,
+                rotation: 0,
+              })
+
+              if (batchIndex + i === 0) {
+                const sizeX = (viewport.width * printUnits) / styleUnits
+                const sizeY = (viewport.height * printUnits) / styleUnits
+                addPrintStyles(iframe, sizeX, sizeY)
+              }
+
+              const canvas = window.document.createElement('canvas')
+              canvas.width = viewport.width * printUnits
+              canvas.height = viewport.height * printUnits
+              container.appendChild(canvas)
+              const canvasClone = canvas.cloneNode() as HTMLCanvasElement
+              iframe.contentWindow!.document.body.appendChild(canvasClone)
+
+              await page.render({
+                canvasContext: canvas.getContext('2d')!,
+                intent: 'print',
+                transform: [printUnits, 0, 0, printUnits, 0, 0],
+                viewport,
+              }).promise
+
+              canvasClone.getContext('2d')!.drawImage(canvas, 0, 0)
+              releaseCanvas(canvas)
+            })
+        )
+      }
+
+      if (filename) {
+        title = window.document.title
+        window.document.title = filename
+      }
+
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+    } finally {
+      if (title) {
+        window.document.title = title
+      }
+
+      releaseChildCanvases(iframe!.contentWindow?.document.body)
+      releaseChildCanvases(container!)
+      container!.parentNode?.removeChild(container!)
+    }
+  }
+
   return {
     doc,
+    download,
+    print,
   }
 }

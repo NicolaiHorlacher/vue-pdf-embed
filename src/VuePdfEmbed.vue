@@ -10,14 +10,7 @@ import type {
 } from 'pdfjs-dist'
 
 import type { PasswordRequestParams, Source } from './types'
-import {
-  addPrintStyles,
-  createPrintIframe,
-  downloadPdf,
-  emptyElement,
-  releaseCanvas,
-  releaseChildCanvases,
-} from './utils'
+import { emptyElement, releaseChildCanvases } from './utils'
 import { useVuePdfEmbed } from './composables'
 
 const props = withDefaults(
@@ -91,7 +84,7 @@ const root = shallowRef<HTMLDivElement | null>(null)
 let renderingController: { isAborted: boolean; promise: Promise<void> } | null =
   null
 
-const { doc } = useVuePdfEmbed({
+const { doc, download, print } = useVuePdfEmbed({
   onError: (e) => {
     pageNums.value = []
     emit('loading-failed', e)
@@ -123,23 +116,6 @@ const linkService = computed(() => {
 })
 
 /**
- * Downloads the PDF document.
- * @param filename - Predefined filename to save.
- */
-const download = async (filename: string) => {
-  if (!doc.value) {
-    return
-  }
-
-  const data = await doc.value.getData()
-  const metadata = await doc.value.getMetadata()
-  const suggestedFilename =
-    // @ts-expect-error: contentDispositionFilename is not typed
-    filename ?? metadata.contentDispositionFilename ?? ''
-  downloadPdf(data, suggestedFilename)
-}
-
-/**
  * Returns an array of the actual page width and height based on props and
  * aspect ratio.
  * @param ratio - Page aspect ratio.
@@ -157,96 +133,6 @@ const getPageDimensions = (ratio: number): [number, number] => {
   }
 
   return [width, height]
-}
-
-/**
- * Prints a PDF document via the browser interface.
- * @param dpi - Print resolution.
- * @param filename - Predefined filename to save.
- * @param allPages - Whether to ignore the page prop and print all pages.
- */
-const print = async (dpi = 300, filename = '', allPages = false) => {
-  if (!doc.value) {
-    return
-  }
-
-  const printUnits = dpi / 72
-  const styleUnits = 96 / 72
-  let container: HTMLDivElement
-  let iframe: HTMLIFrameElement
-  let title: string | undefined
-
-  try {
-    container = window.document.createElement('div')
-    container.style.display = 'none'
-    window.document.body.appendChild(container)
-    iframe = await createPrintIframe(container)
-
-    const batchSize = Math.max(3, Math.floor(10 * (300 / dpi)))
-    const pageNums =
-      props.page && !allPages
-        ? Array.isArray(props.page)
-          ? props.page
-          : [props.page]
-        : [...Array(doc.value.numPages + 1).keys()].slice(1)
-
-    for (
-      let batchIndex = 0;
-      batchIndex < pageNums.length;
-      batchIndex += batchSize
-    ) {
-      await Promise.all(
-        pageNums
-          .slice(batchIndex, batchIndex + batchSize)
-          .map(async (pageNum, i) => {
-            const page = await doc.value!.getPage(pageNum)
-            const viewport = page.getViewport({
-              scale: 1,
-              rotation: 0,
-            })
-
-            if (batchIndex + i === 0) {
-              const sizeX = (viewport.width * printUnits) / styleUnits
-              const sizeY = (viewport.height * printUnits) / styleUnits
-              addPrintStyles(iframe, sizeX, sizeY)
-            }
-
-            const canvas = window.document.createElement('canvas')
-            canvas.width = viewport.width * printUnits
-            canvas.height = viewport.height * printUnits
-            container.appendChild(canvas)
-            const canvasClone = canvas.cloneNode() as HTMLCanvasElement
-            iframe.contentWindow!.document.body.appendChild(canvasClone)
-
-            await page.render({
-              canvasContext: canvas.getContext('2d')!,
-              intent: 'print',
-              transform: [printUnits, 0, 0, printUnits, 0, 0],
-              viewport,
-            }).promise
-
-            canvasClone.getContext('2d')!.drawImage(canvas, 0, 0)
-            releaseCanvas(canvas)
-          })
-      )
-    }
-
-    if (filename) {
-      title = window.document.title
-      window.document.title = filename
-    }
-
-    iframe.contentWindow?.focus()
-    iframe.contentWindow?.print()
-  } finally {
-    if (title) {
-      window.document.title = title
-    }
-
-    releaseChildCanvases(iframe!.contentWindow?.document.body)
-    releaseChildCanvases(container!)
-    container!.parentNode?.removeChild(container!)
-  }
 }
 
 /**
@@ -466,7 +352,8 @@ onBeforeUnmount(() => {
 defineExpose({
   doc,
   download,
-  print,
+  print: (dpi?: number, filename?: string, allPages = false) =>
+    print(dpi, filename, allPages ? undefined : props.page),
 })
 </script>
 
