@@ -56,7 +56,7 @@ export function useVuePdfEmbed({
 
       if (onPasswordRequest) {
         docLoadingTask.value!.onPassword = (
-          callback: Function,
+          callback: (password: unknown) => void,
           response: number
         ) => {
           onPasswordRequest({
