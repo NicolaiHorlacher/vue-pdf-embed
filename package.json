@@ -41,7 +41,7 @@
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
+    "@tsconfig/node24": "^24.0.3",
     "@vitejs/plugin-vue": "^4.5.0",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/test-utils": "^2.4.6",
@@ -58,11 +58,11 @@
     "prettier": "^3.8.1",
     "rollup-plugin-copy": "^3.5.0",
     "sass": "^1.77.8",
-    "typescript": "^5.5.4",
+    "typescript": "^5.7.3",
     "vite": "^5.4.7",
     "vitest": "^2.1.1",
     "vue": "^3.5.0",
-    "vue-tsc": "^2.0.29"
+    "vue-tsc": "^2.2.12"
   },
   "peerDependencies": {
     "vue": "^3.3.0"
