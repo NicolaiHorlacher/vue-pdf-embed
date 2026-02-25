@@ -5,7 +5,6 @@ import vue from '@vitejs/plugin-vue'
 import postcss from 'postcss'
 import cssnano from 'cssnano'
 import selectorParser from 'postcss-selector-parser'
-import type { RollupOptions } from 'rollup'
 
 const cssCopyOptions: CopyOptions = {
   hook: 'writeBundle',
@@ -67,18 +66,6 @@ const cssCopyOptions: CopyOptions = {
   })),
 }
 
-export const rollupOptions: RollupOptions = {
-  external: ['pdfjs-dist', 'vue'],
-  output: {
-    globals: {
-      'pdfjs-dist': 'pdfjsLib',
-      vue: 'Vue',
-    },
-    compact: true,
-    inlineDynamicImports: true,
-  },
-}
-
 export default defineConfig({
   plugins: [copy(cssCopyOptions), vue()],
   build: {
@@ -87,6 +74,14 @@ export default defineConfig({
       name: 'VuePdfEmbed',
       fileName: 'index',
     },
-    rollupOptions,
+    rollupOptions: {
+      external: ['vue'],
+      output: {
+        globals: {
+          vue: 'Vue',
+        },
+        inlineDynamicImports: true,
+      },
+    },
   },
 })
