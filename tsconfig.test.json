@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.lib.json",
-  "include": ["env.d.ts", "global.d.ts", "src/**/*", "test/**/*"],
+  "include": ["env.d.ts", "global.d.ts", "src/**/*", "__tests__/**/*"],
   "compilerOptions": {
     "composite": true,
     "types": ["happy-dom", "node"]
