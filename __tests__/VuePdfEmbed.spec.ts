@@ -18,7 +18,7 @@ vi.mock('pdfjs-dist/legacy/build/pdf.mjs', () => ({
   getDocument: (...args: unknown[]) => mockGetDocument(...args),
 }))
 
-vi.mock('pdfjs-dist/web/pdf_viewer.mjs', () => ({
+vi.mock('pdfjs-dist/legacy/web/pdf_viewer.mjs', () => ({
   PDFLinkService: vi.fn().mockImplementation(() => ({
     setDocument: vi.fn(),
     setViewer: vi.fn(),
