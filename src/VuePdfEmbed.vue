@@ -265,7 +265,7 @@ const renderPageAnnotationLayer = async (
   container: HTMLDivElement
 ) => {
   emptyElement(container)
-  new AnnotationLayer({
+  await new AnnotationLayer({
     accessibilityManager: null,
     annotationCanvasMap: null,
     annotationEditorUIManager: null,
@@ -296,7 +296,7 @@ const renderPageTextLayer = async (
   container: HTMLElement
 ) => {
   emptyElement(container)
-  new TextLayer({
+  await new TextLayer({
     container,
     textContentSource: await page.getTextContent(),
     viewport,
