@@ -25,7 +25,7 @@ const props = withDefaults(
     height?: number
     /**
      * Root element identifier (inherited by page containers with page number
-     * postfixes).
+     * suffixes).
      */
     id?: string
     /**

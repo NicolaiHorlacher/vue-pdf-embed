@@ -43,11 +43,11 @@ yarn add vue-pdf-embed
 <script setup>
 import VuePdfEmbed from 'vue-pdf-embed'
 
-// optional styles
+// Optional styles
 import 'vue-pdf-embed/dist/styles/annotationLayer.css'
 import 'vue-pdf-embed/dist/styles/textLayer.css'
 
-// either URL, Base64, binary, or document proxy
+// Either URL, Base64, binary, or document proxy
 const pdfSource = '<PDF_URL>'
 </script>
 
@@ -58,30 +58,30 @@ const pdfSource = '<PDF_URL>'
 
 ### Props
 
-| Name               | Type                                           | Accepted values                                         | Description                                                                                |
-| ------------------ | ---------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| annotationLayer    | `boolean`                                      |                                                         | whether the annotation layer should be enabled                                             |
-| height             | `number`                                       | natural numbers                                         | desired page height in pixels (ignored if the width property is specified)                 |
-| imageResourcesPath | `string`                                       | URL or path with trailing slash                         | path for icons used in the annotation layer                                                |
-| linkService        | `PDFLinkService`                               |                                                         | document navigation service to override the default one (emitting `internal-link-clicked`) |
-| page               | `number` <br> `number[]`                       | `1` to the last page number                             | page number(s) to display (displaying all pages if not specified)                          |
-| rotation           | `number`                                       | `0`, `90`, `180`, `270` (multiples of `90`)             | desired page rotation angle in degrees                                                     |
-| scale              | `number`                                       | rational numbers                                        | desired page viewport scale                                                                |
-| source             | `string` <br> `object` <br> `PDFDocumentProxy` | document URL or Base64 or typed array or document proxy | source of the document to display                                                          |
-| textLayer          | `boolean`                                      |                                                         | whether the text layer should be enabled                                                   |
-| width              | `number`                                       | natural numbers                                         | desired page width in pixels                                                               |
+| Name               | Type                                           | Accepted values                                         | Description                                                                               |
+| ------------------ | ---------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| annotationLayer    | `boolean`                                      |                                                         | whether the annotation layer should be enabled                                            |
+| height             | `number`                                       | natural numbers                                         | desired page height in pixels (ignored if the width property is specified)                |
+| imageResourcesPath | `string`                                       | URL or path with trailing slash                         | path for icons used in the annotation layer                                               |
+| linkService        | `PDFLinkService`                               |                                                         | document navigation service (replaces the default one that emits `internal-link-clicked`) |
+| page               | `number` <br> `number[]`                       | `1` to the last page number                             | page number(s) to display (displaying all pages if not specified)                         |
+| rotation           | `number`                                       | `0`, `90`, `180`, `270` (multiples of `90`)             | desired page rotation angle in degrees                                                    |
+| scale              | `number`                                       | rational numbers                                        | desired page viewport scale                                                               |
+| source             | `string` <br> `object` <br> `PDFDocumentProxy` | document URL or Base64 or typed array or document proxy | source of the document to display                                                         |
+| textLayer          | `boolean`                                      |                                                         | whether the text layer should be enabled                                                  |
+| width              | `number`                                       | natural numbers                                         | desired page width in pixels                                                              |
 
 ### Events
 
-| Name                  | Value                                                                   | Description                                |
-| --------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
-| internal-link-clicked | destination page number                                                 | internal link was clicked                  |
-| loaded                | PDF document proxy                                                      | finished loading the document              |
-| loading-failed        | error object                                                            | failed to load document                    |
-| password-requested    | object with `callback` function and `isWrongPassword` flag              | password is needed to display the document |
-| progress              | object with number of `loaded` pages along with `total` number of pages | tracking document loading progress         |
-| rendered              | –                                                                       | finished rendering the document            |
-| rendering-failed      | error object                                                            | failed to render document                  |
+| Name                  | Value                                                                   | Description                                    |
+| --------------------- | ----------------------------------------------------------------------- | ---------------------------------------------- |
+| internal-link-clicked | destination page number                                                 | an internal link was clicked                   |
+| loaded                | PDF document proxy                                                      | finished loading the document                  |
+| loading-failed        | error object                                                            | failed to load the document                    |
+| password-requested    | object with `callback` function and `isWrongPassword` flag              | a password is required to display the document |
+| progress              | object with number of `loaded` pages along with `total` number of pages | tracks the document's loading progress         |
+| rendered              | –                                                                       | finished rendering the document                |
+| rendering-failed      | error object                                                            | failed to render the document                  |
 
 ### Slots
 
@@ -92,10 +92,10 @@ const pdfSource = '<PDF_URL>'
 
 ### Public Methods
 
-| Name     | Arguments                                                                    | Description                          |
-| -------- | ---------------------------------------------------------------------------- | ------------------------------------ |
-| download | filename (`string`)                                                          | download document                    |
-| print    | print resolution (`number`), filename (`string`), all pages flag (`boolean`) | print document via browser interface |
+| Name     | Arguments                                                                    | Description                                  |
+| -------- | ---------------------------------------------------------------------------- | -------------------------------------------- |
+| download | filename (`string`)                                                          | download the document                        |
+| print    | print resolution (`number`), filename (`string`), all pages flag (`boolean`) | print the document via the browser interface |
 
 **Note:** Public methods can be accessed through a [template ref](https://vuejs.org/guide/essentials/template-refs.html).
 
@@ -107,18 +107,25 @@ This is a client-side library, so it is important to keep this in mind when work
 
 ### Web Worker Loading
 
-The web worker used to handle PDF documents is loaded by default. However, this may not be acceptable due to bundler restrictions or CSP (Content Security Policy). In such cases it is recommended to use the essential build (`index.essential.mjs`) and set up the worker manually using the exposed `GlobalWorkerOptions`.
+By default, the PDF.js web worker is bundled as a blob URL. This works out of the box, but it may be blocked by certain CSP (content security policy) configurations. In such cases, use the essential build and configure the worker manually:
 
 ```js
-import { GlobalWorkerOptions } from 'vue-pdf-embed/dist/index.essential.mjs'
-import PdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
+import VuePdfEmbed, {
+  GlobalWorkerOptions,
+} from 'vue-pdf-embed/dist/index.essential.mjs'
 
+// Option 1: use a bundler URL import
+import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 GlobalWorkerOptions.workerSrc = PdfWorker
+
+// Option 2: serve the worker from your public directory,
+// copied from pdfjs-dist/build/pdf.worker.min.mjs
+GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 ```
 
 ### Document Loading
 
-Typically, document loading is internally handled within the component. However, for optimization purposes, the document can be loaded in the `useVuePdfEmbed` composable function and then passed as the `source` prop of the component (e.g. when sharing the source between multiple instances of the component).
+Typically, document loading is internally handled within the component. However, for optimization purposes, the document can be loaded with the `useVuePdfEmbed` composable and then passed to the component via the `source` prop (e.g., when sharing the source between multiple instances of the component).
 
 ```vue
 <script setup>
@@ -134,7 +141,7 @@ const { doc } = useVuePdfEmbed({ source: '<PDF_URL>' })
 
 ### Resources
 
-The path to predefined CMaps should be specified to ensure correct rendering of documents containing non-Latin characters, as well as in case of CMap-related errors:
+The path to predefined CMaps should be provided to ensure correct rendering of documents with non-Latin characters and to avoid CMap-related errors:
 
 ```vue
 <VuePdfEmbed
